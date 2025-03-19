@@ -40,7 +40,11 @@ const defaultCenter = {
 
 const MARKER_ROTATION = 180; // Rotation in degrees
 
-const MapComponent = () => {
+interface MapComponentProps {
+  onAreaUpdate?: (newArea: number) => void;
+}
+
+const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
   const [isClient, setIsClient] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapType, setMapType] = useState<MapType>('hybrid');
@@ -859,6 +863,19 @@ const MapComponent = () => {
     const cleanup = setupAutoClosePolygon();
     return cleanup;
   }, [setupAutoClosePolygon, isDrawingMode]);
+
+  // Call onAreaUpdate whenever the area changes
+  useEffect(() => {
+    if (onAreaUpdate && fieldPolygons.length > 0) {
+      // Calculate total area of all polygons
+      const totalArea = fieldPolygons.reduce((sum, polygon) => {
+        const area = google.maps.geometry.spherical.computeArea(polygon.getPath());
+        return sum + (area / 10000); // Convert square meters to hectares
+      }, 0);
+      
+      onAreaUpdate(totalArea);
+    }
+  }, [fieldPolygons, onAreaUpdate]);
 
   // Client-side effect
   useEffect(() => {

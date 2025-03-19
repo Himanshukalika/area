@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { NextPage } from 'next';
 import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -16,6 +17,10 @@ const MapComponent = dynamic(
     )
   }
 );
+
+interface MapComponentProps {
+  onAreaUpdate: (newArea: number) => void;
+}
 
 const Home: NextPage = () => {
   const [area, setArea] = useState<number>(0);
