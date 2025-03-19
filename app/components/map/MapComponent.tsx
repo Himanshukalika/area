@@ -409,7 +409,7 @@ const MapComponent = () => {
     let tempPolyline: google.maps.Polyline | null = null;
     let vertices: google.maps.LatLng[] = [];
     let vertexMarkers: google.maps.Marker[] = [];
-    let edgeMarkers: google.maps.OverlayView[] = [];
+    let edgeMarkers: (google.maps.Marker | google.maps.OverlayView)[] = [];
     let mapClickListener: google.maps.MapsEventListener | null = null;
     let mapDblClickListener: google.maps.MapsEventListener | null = null;
 
@@ -495,7 +495,7 @@ const MapComponent = () => {
             handleDistanceChange
           );
           overlay.setMap(map);
-          edgeMarkers.push(overlay);
+          edgeMarkers.push(overlay as google.maps.Marker | google.maps.OverlayView);
 
           // Create marker at midpoint
           const marker = new google.maps.Marker({
@@ -516,9 +516,12 @@ const MapComponent = () => {
           let dragMarker: google.maps.Marker | null = null;
 
           marker.addListener('dragstart', () => {
+            const position = marker.getPosition();
+            if (!position) return;  // Early return if no position
+            
             // Create the red location marker for drag state
             dragMarker = new google.maps.Marker({
-              position: marker.getPosition(),
+              position: position,  // Use the validated position
               map: map,
               icon: {
                 path: LOCATION_MARKER_PATH,
@@ -537,15 +540,14 @@ const MapComponent = () => {
             marker.setOpacity(0);
             
             // Store the original position and vertices
-            marker.set('originalPosition', marker.getPosition());
+            marker.set('originalPosition', position);  // Use the validated position
             marker.set('originalVertices', [...vertices]);
+            
             // Create a temporary vertex at the edge position
             const tempVertices = [...vertices];
-            if (marker.getPosition()) {
-              tempVertices.splice(i + 1, 0, marker.getPosition());
-              vertices = tempVertices;
-              marker.set('tempVertexIndex', i + 1);
-            }
+            tempVertices.splice(i + 1, 0, position);  // Use the validated position
+            vertices = tempVertices;
+            marker.set('tempVertexIndex', i + 1);
           });
 
           marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
@@ -679,7 +681,7 @@ const MapComponent = () => {
             }
           });
 
-          edgeMarkers.push(marker);
+          edgeMarkers.push(marker as google.maps.Marker | google.maps.OverlayView);
         }
       }
     };
