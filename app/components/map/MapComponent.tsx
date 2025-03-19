@@ -19,6 +19,8 @@ const polygonFillOpacity = 0.3;
 const strokeColor = '#00C853';
 const strokeWeight = 2;
 
+const LOCATION_MARKER_PATH = "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z";
+
 const mapStyles = {
   container: {
     width: '100%',
@@ -35,6 +37,8 @@ const defaultCenter = {
   lat: 27.342860470286933, 
   lng: 75.79046143662488,
 };
+
+const MARKER_ROTATION = 180; // Rotation in degrees
 
 const MapComponent = () => {
   const [isClient, setIsClient] = useState(false);
@@ -311,12 +315,13 @@ const MapComponent = () => {
         position: vertex,
         map: map,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#2196F3',
+          path: LOCATION_MARKER_PATH,
+          fillColor: '#FF0000',
           fillOpacity: 1,
           strokeColor: '#FFFFFF',
-          strokeWeight: 2,
+          strokeWeight: 1,
+          scale: 2,
+          anchor: new google.maps.Point(12, 23),
         },
         draggable: true,
         zIndex: 2
@@ -345,12 +350,13 @@ const MapComponent = () => {
         position: vertex,
         map: map,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#2196F3',
+          path: LOCATION_MARKER_PATH,
+          fillColor: '#FF0000',
           fillOpacity: 1,
           strokeColor: '#FFFFFF',
-          strokeWeight: 2,
+          strokeWeight: 1,
+          scale: 2,
+          anchor: new google.maps.Point(12, 23),
         },
         draggable: true,
         zIndex: 2
@@ -507,7 +513,7 @@ const MapComponent = () => {
             position: midpoint,
             map: map,
             icon: {
-              path: google.maps.SymbolPath.CIRCLE,
+              path: google.maps.SymbolPath.CIRCLE,  // Change back to circle for initial state
               scale: 5,
               fillColor: '#FFFFFF',
               fillOpacity: 0.5,
@@ -518,39 +524,70 @@ const MapComponent = () => {
             zIndex: 2
           });
 
-          // Store the index for use in drag events
-          marker.set('edgeIndex', i);
+          let dragMarker: google.maps.Marker | null = null;
 
           marker.addListener('dragstart', () => {
+            // Create the red location marker for drag state
+            dragMarker = new google.maps.Marker({
+              position: marker.getPosition(),
+              map: map,
+              icon: {
+                path: LOCATION_MARKER_PATH,
+                fillColor: '#FF0000',
+                fillOpacity: 1,
+                strokeColor: '#FFFFFF',
+                strokeWeight: 1,
+                scale: 2,
+                anchor: new google.maps.Point(12, 23),
+                rotation: MARKER_ROTATION
+              },
+              zIndex: 3
+            });
+            
+            // Hide the original circle marker during drag
+            marker.setOpacity(0);
+            
             // Store the original position and vertices
             marker.set('originalPosition', marker.getPosition());
-            // Store a copy of the original vertices array
             marker.set('originalVertices', [...vertices]);
             // Create a temporary vertex at the edge position
             const tempVertices = [...vertices];
-            tempVertices.splice(i + 1, 0, marker.getPosition());
-            vertices = tempVertices;
-            marker.set('tempVertexIndex', i + 1);
+            if (marker.getPosition()) {
+              tempVertices.splice(i + 1, 0, marker.getPosition());
+              vertices = tempVertices;
+              marker.set('tempVertexIndex', i + 1);
+            }
           });
 
           marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
             if (!e.latLng || !tempPolyline) return;
             
+            // Update drag marker position
+            if (dragMarker) {
+              dragMarker.setPosition(e.latLng);
+            }
+            
             const tempVertexIndex = marker.get('tempVertexIndex');
             if (tempVertexIndex !== undefined) {
-              // Update the temporary vertex position
               vertices[tempVertexIndex] = e.latLng;
-              
-              // Update the polyline with the current vertices
               const path = vertices.slice();
               if (path.length >= 3) {
-                path.push(path[0]); // Close the polygon
+                path.push(path[0]);
               }
               tempPolyline.setPath(path);
             }
           });
 
           marker.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+            // Remove the drag marker and show original marker
+            if (dragMarker) {
+              dragMarker.setMap(null);
+              dragMarker = null;
+            }
+            
+            // Show the original marker
+            marker.setOpacity(1);
+            
             if (!e.latLng) return;
             
             const tempVertexIndex = marker.get('tempVertexIndex');
@@ -558,7 +595,7 @@ const MapComponent = () => {
               // Update the final position of the temporary vertex
               vertices[tempVertexIndex] = e.latLng;
               
-              // Create vertex marker for the new point
+              // Create vertex marker for the new point with circle icon initially
               const vertexMarker = new google.maps.Marker({
                 position: e.latLng,
                 map: map,
@@ -573,22 +610,55 @@ const MapComponent = () => {
                 draggable: true,
                 zIndex: 2
               });
+
+              let newDragMarker: google.maps.Marker | null = null;
               
-              // Add drag listener to the new vertex marker
+              // Add drag listeners to the new vertex marker
+              vertexMarker.addListener('dragstart', () => {
+                // Create red marker for drag
+                newDragMarker = new google.maps.Marker({
+                  position: vertexMarker.getPosition(),
+                  map: map,
+                  icon: {
+                    path: LOCATION_MARKER_PATH,
+                    fillColor: '#FF0000',
+                    fillOpacity: 1,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 1,
+                    scale: 2,
+                    anchor: new google.maps.Point(12, 23),
+                    rotation: MARKER_ROTATION
+                  },
+                  zIndex: 3
+                });
+                vertexMarker.setOpacity(0);
+              });
+
               vertexMarker.addListener('drag', (e: google.maps.MapMouseEvent) => {
                 if (!e.latLng) return;
                 const index = vertexMarkers.indexOf(vertexMarker);
                 if (index !== -1) {
                   vertices[index] = e.latLng;
+                  if (newDragMarker) {
+                    newDragMarker.setPosition(e.latLng);
+                  }
                   if (tempPolyline) {
                     const path = vertices.slice();
                     if (vertices.length >= 3) {
-                      path.push(vertices[0]); // Close the polygon
+                      path.push(vertices[0]);
                     }
                     tempPolyline.setPath(path);
                   }
                   updateEdgeMarkers();
                 }
+              });
+
+              vertexMarker.addListener('dragend', () => {
+                if (newDragMarker) {
+                  newDragMarker.setMap(null);
+                  newDragMarker = null;
+                }
+                vertexMarker.setOpacity(1);
               });
               
               vertexMarkers.splice(tempVertexIndex, 0, vertexMarker);
@@ -597,7 +667,7 @@ const MapComponent = () => {
               if (tempPolyline) {
                 const path = vertices.slice();
                 if (vertices.length >= 3) {
-                  path.push(vertices[0]); // Close the polygon
+                  path.push(vertices[0]);
                 }
                 tempPolyline.setPath(path);
               }
@@ -642,43 +712,74 @@ const MapComponent = () => {
       mapClickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
         if (!e.latLng || !tempPolyline) return;
         
-        // Add vertex to polyline
         vertices.push(e.latLng);
         
-        // Create a marker for this vertex
+        // Create a marker for this vertex with circle icon (during drawing)
         const marker = new google.maps.Marker({
           position: e.latLng,
           map: map,
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 7,
-            fillColor: '#FFFFFF',  // White fill
-            fillOpacity: 0.5,      // Semi-transparent fill
-            strokeColor: '#FFFFFF', // White border
+            fillColor: '#FFFFFF',
+            fillOpacity: 0.5,
+            strokeColor: '#FFFFFF',
             strokeWeight: 2,
           },
           draggable: true,
           zIndex: 2
         });
 
-        // Add drag listeners to update the polygon shape while dragging
+        let dragMarker: google.maps.Marker | null = null;
+
+        // Show red location marker during drag
+        marker.addListener('dragstart', () => {
+          // Create the red location marker
+          dragMarker = new google.maps.Marker({
+            position: marker.getPosition(),
+            map: map,
+            icon: {
+              path: LOCATION_MARKER_PATH,
+              fillColor: '#FF0000',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 1,
+              scale: 2,
+              anchor: new google.maps.Point(12, 23),
+              rotation: MARKER_ROTATION
+            },
+            zIndex: 3
+          });
+          marker.setOpacity(0);
+        });
+
         marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
-          // Update vertex position in vertices array
+          // Update vertex position and drag marker position
           const index = vertexMarkers.indexOf(marker);
           if (index !== -1) {
             vertices[index] = e.latLng;
-            // Update polyline path
+            if (dragMarker) {
+              dragMarker.setPosition(e.latLng);
+            }
             if (tempPolyline) {
               const path = vertices.slice();
               if (vertices.length >= 3) {
-                path.push(vertices[0]); // Close the polygon
+                path.push(vertices[0]);
               }
               tempPolyline.setPath(path);
             }
-            // Update edge markers
             updateEdgeMarkers();
           }
+        });
+
+        marker.addListener('dragend', () => {
+          // Remove the drag marker and show original marker
+          if (dragMarker) {
+            dragMarker.setMap(null);
+            dragMarker = null;
+          }
+          marker.setOpacity(1);
         });
         
         vertexMarkers.push(marker);
@@ -856,13 +957,6 @@ const MapComponent = () => {
               />
             ))}
           </GoogleMap>
-          
-          {/* Drawing instructions */}
-          {isDrawingMode && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-2 rounded-md shadow-md z-10">
-              <p className="text-sm">Click on the map to add points. Double-click to finish drawing (minimum 3 points needed).</p>
-            </div>
-          )}
         </div>
 
         <MapControls
