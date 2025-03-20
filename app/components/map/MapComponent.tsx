@@ -99,17 +99,17 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
           <div style="
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             text-align: center;
-            min-width: 50px;
-            transform: translate(-50%, -150%) rotate(${this.angle}deg);
-            transform-origin: center bottom;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            min-width: 60px;
+            transform: translate(-50%, -150%);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
             white-space: nowrap;
             cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.3);
           ">
             <input
               type="number"
@@ -121,10 +121,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
                 background: transparent;
                 border: none;
                 color: white;
-                font-size: 12px;
+                font-size: 14px;
                 text-align: right;
                 outline: none;
                 padding: 0;
+                font-weight: 600;
               "
             />${unit}
           </div>
@@ -347,7 +348,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
           fillOpacity: 1,
           strokeColor: '#FFFFFF',
           strokeWeight: 1,
-          scale: 2,
+          scale: 4.5,
           anchor: new google.maps.Point(12, 23),
         },
         draggable: true,
@@ -381,7 +382,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
           fillOpacity: 1,
           strokeColor: '#FFFFFF',
           strokeWeight: 1,
-          scale: 2,
+          scale: 4.5,
           anchor: new google.maps.Point(12, 23),
         },
         draggable: true,
@@ -458,10 +459,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
             p2.lat() - p1.lat()
           ) * (180 / Math.PI);
 
-          // Adjust angle to keep text readable (not upside down)
-          if (angle < -90 || angle > 90) {
-            angle += 180;
-          }
+          // We're removing the angle rotation to keep labels straight
+          angle = 0; // Always keep text straight
 
           // Handler for distance changes
           const handleDistanceChange = (newDistance: number) => {
@@ -525,7 +524,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
             
             // Create the red location marker for drag state
             dragMarker = new google.maps.Marker({
-              position: position,  // Use the validated position
+              position: position,
               map: map,
               icon: {
                 path: LOCATION_MARKER_PATH,
@@ -533,7 +532,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
                 fillOpacity: 1,
                 strokeColor: '#FFFFFF',
                 strokeWeight: 1,
-                scale: 2,
+                scale: 4.5,
                 anchor: new google.maps.Point(12, 23),
                 rotation: MARKER_ROTATION
               },
@@ -567,7 +566,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
               vertices[tempVertexIndex] = e.latLng;
               const path = vertices.slice();
               if (path.length >= 3) {
-                path.push(path[0]);
+                path.push(vertices[0]);
               }
               tempPolyline.setPath(path);
             }
@@ -605,7 +604,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
                 draggable: true,
                 zIndex: 2
               });
-
+              
               let newDragMarker: google.maps.Marker | null = null;
               
               // Add drag listeners to the new vertex marker
@@ -620,7 +619,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
                     fillOpacity: 1,
                     strokeColor: '#FFFFFF',
                     strokeWeight: 1,
-                    scale: 2,
+                    scale: 4.5,
                     anchor: new google.maps.Point(12, 23),
                     rotation: MARKER_ROTATION
                   },
@@ -739,7 +738,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ onAreaUpdate }) => {
               fillOpacity: 1,
               strokeColor: '#FFFFFF',
               strokeWeight: 1,
-              scale: 2,
+              scale: 4.5,
               anchor: new google.maps.Point(12, 23),
               rotation: MARKER_ROTATION
             },
